@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Categories — Ube & Sand Halo-Halo Shop</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍧</text></svg>" />
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><span>Loading...</span></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="dashboard.html" class="sidebar-brand">
+          <div class="brand-icon"><i class="fa-solid fa-bowl-food"></i></div>
+          <div class="brand-text"><h2>Ube &amp; Sand</h2><span>Halo-Halo Shop</span></div>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main Menu</div>
+        <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+        <a href="products.html" class="nav-item"><i class="fa-solid fa-box-open"></i> Products</a>
+        <a href="inventory.html" class="nav-item"><i class="fa-solid fa-warehouse"></i> Inventory</a>
+        <a href="categories.html" class="nav-item active"><i class="fa-solid fa-tags"></i> Categories</a>
+        <a href="sales.html" class="nav-item"><i class="fa-solid fa-cash-register"></i> Sales</a>
+        <a href="logs.html" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a>
+        <div class="nav-section-title" style="margin-top:12px;">Account</div>
+        <a href="profile.html" class="nav-item"><i class="fa-solid fa-user-circle"></i> Profile</a>
+        <a href="#" class="nav-item" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+          <div class="user-info">
+            <div class="user-name" id="sidebarUserName">Admin</div>
+            <div class="user-role" id="sidebarUserEmail">admin@halo-halo.ph</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <button class="topbar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+        <div class="topbar-title"><h1>Category Management</h1><p>Organize your products by category</p></div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary btn-sm" id="openAddCatModal"><i class="fa-solid fa-plus"></i> Add Category</button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <!-- Default Categories Info -->
+        <div class="alert alert-info" style="background:rgba(91,45,142,0.08);color:var(--primary);border:1px solid rgba(91,45,142,0.2);margin-bottom:20px;">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Default categories: Halo-Halo, Ingredients, Toppings, Drinks, Desserts. You can add more or manage existing ones.</span>
+        </div>
+
+        <!-- Categories Grid -->
+        <div class="categories-grid" id="categoriesGrid">
+          <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--gray-500);">
+            <div class="spinner" style="margin:0 auto 12px;"></div>Loading categories...
+          </div>
+        </div>
+
+        <!-- Category Products Preview -->
+        <div class="card" style="margin-top:24px;" id="categoryProductsCard" style="display:none;">
+          <div class="card-header">
+            <h3 class="card-title" id="catProductsTitle"><i class="fa-solid fa-box-open"></i> Products in Category</h3>
+            <button class="btn btn-sm btn-secondary" id="closeCatProducts"><i class="fa-solid fa-xmark"></i> Close</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Status</th></tr></thead>
+              <tbody id="catProductsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add/Edit Category Modal -->
+  <div class="modal-overlay" id="catModal">
+    <div class="modal" style="max-width:460px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-tags"></i> <span id="catModalTitle">Add Category</span></h3>
+        <button class="modal-close" id="closeCatModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="catForm">
+          <input type="hidden" id="catId" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category Name *</label>
+              <div class="input-wrapper">
+                <i class="fa-solid fa-tag"></i>
+                <input type="text" id="catName" placeholder="e.g. Halo-Halo" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Emoji / Icon</label>
+              <div class="input-wrapper">
+                <i class="fa-solid fa-face-smile"></i>
+                <input type="text" id="catEmoji" placeholder="🍧" maxlength="4" />
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="catDesc" placeholder="Brief description of this category"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelCatModal">Cancel</button>
+        <button class="btn btn-primary" id="saveCat"><i class="fa-solid fa-floppy-disk"></i> Save Category</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Category Modal -->
+  <div class="modal-overlay" id="deleteCatModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-trash" style="color:var(--danger);"></i> Delete Category</h3>
+        <button class="modal-close" id="closeDeleteCatModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--gray-700);">Delete <strong id="deleteCatName"></strong>? Products in this category will not be deleted but their category will be cleared.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelDeleteCat">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteCat"><i class="fa-solid fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { requireAuth, logoutUser, initSidebar, showToast, formatCurrency } from "./js/auth-guard.js";
+    import { initFirebase } from "./js/auth-guard.js";
+    import {
+      collection, getDocs, addDoc, updateDoc, deleteDoc,
+      doc, orderBy, query, serverTimestamp, where
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const { db } = initFirebase();
+    await requireAuth();
+    initSidebar();
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => { e.preventDefault(); await logoutUser(); });
+
+    let allCategories = [], allProducts = [], deleteTargetId = null;
+
+    const DEFAULT_CATEGORIES = [
+      { name: 'Halo-Halo', emoji: '🍧', description: 'Classic and special Halo-Halo servings' },
+      { name: 'Ingredients', emoji: '🥛', description: 'Raw ingredients used in making Halo-Halo' },
+      { name: 'Toppings', emoji: '🍮', description: 'Toppings and add-ons for Halo-Halo' },
+      { name: 'Drinks', emoji: '🥤', description: 'Beverages and drinks' },
+      { name: 'Desserts', emoji: '🍨', description: 'Dessert items and sweets' },
+    ];
+
+    async function seedDefaultCategories() {
+      const snap = await getDocs(collection(db, 'categories'));
+      if (snap.empty) {
+        for (const cat of DEFAULT_CATEGORIES) {
+          await addDoc(collection(db, 'categories'), { ...cat, createdAt: serverTimestamp() });
+        }
+      }
+    }
+
+    async function loadAll() {
+      await seedDefaultCategories();
+      const [catSnap, prodSnap] = await Promise.all([
+        getDocs(query(collection(db, 'categories'), orderBy('name'))),
+        getDocs(collection(db, 'products'))
+      ]);
+      allCategories = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allProducts = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCategories();
+    }
+
+    function renderCategories() {
+      const grid = document.getElementById('categoriesGrid');
+      if (!allCategories.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;"><div class="empty-state"><div class="empty-icon">🏷️</div><h3>No categories yet</h3></div></div>`;
+        return;
+      }
+      grid.innerHTML = allCategories.map(cat => {
+        const count = allProducts.filter(p => p.category === cat.id).length;
+        return `<div class="category-card">
+          <div class="cat-icon">${cat.emoji || '📦'}</div>
+          <div>
+            <div class="cat-name">${cat.name}</div>
+            <div class="cat-count">${count} product${count !== 1 ? 's' : ''}</div>
+            ${cat.description ? `<div style="font-size:0.75rem;color:var(--gray-500);margin-top:4px;">${cat.description}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:12px;">
+            <button class="btn btn-sm btn-outline" onclick="viewCatProducts('${cat.id}','${cat.name}','${cat.emoji||''}')"><i class="fa-solid fa-eye"></i> View Products</button>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="openEditCat('${cat.id}')"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-danger" style="flex:1;" onclick="openDeleteCat('${cat.id}','${cat.name}')"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right cat-arrow"></i>
+        </div>`;
+      }).join('');
+    }
+
+    window.viewCatProducts = (catId, catName, emoji) => {
+      const products = allProducts.filter(p => p.category === catId);
+      document.getElementById('catProductsTitle').innerHTML = `<i class="fa-solid fa-box-open"></i> ${emoji} ${catName} — ${products.length} Products`;
+      const tbody = document.getElementById('catProductsBody');
+      if (!products.length) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state" style="padding:24px;"><div class="empty-icon">📦</div><p>No products in this category yet.</p></div></td></tr>`;
+      } else {
+        tbody.innerHTML = products.map(p => {
+          const isLow = (p.stock||0) <= (p.lowStockThreshold||10);
+          return `<tr>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="product-img">${p.emoji||'🍧'}</div><span class="td-name">${p.name}</span></div></td>
+            <td class="fw-600 text-primary">${formatCurrency(p.price)}</td>
+            <td class="fw-600">${p.stock ?? 0}</td>
+            <td>${isLow ? '<span class="badge badge-danger">Low</span>' : '<span class="badge badge-success">OK</span>'}</td>
+          </tr>`;
+        }).join('');
+      }
+      document.getElementById('categoryProductsCard').style.display = 'block';
+      document.getElementById('categoryProductsCard').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    document.getElementById('closeCatProducts').addEventListener('click', () => {
+      document.getElementById('categoryProductsCard').style.display = 'none';
+    });
+
+    // Add modal
+    document.getElementById('openAddCatModal').addEventListener('click', () => {
+      document.getElementById('catModalTitle').textContent = 'Add Category';
+      document.getElementById('catId').value = '';
+      document.getElementById('catForm').reset();
+      document.getElementById('catModal').classList.add('open');
+    });
+    document.getElementById('closeCatModal').addEventListener('click', () => document.getElementById('catModal').classList.remove('open'));
+    document.getElementById('cancelCatModal').addEventListener('click', () => document.getElementById('catModal').classList.remove('open'));
+
+    window.openEditCat = (id) => {
+      const c = allCategories.find(x => x.id === id);
+      if (!c) return;
+      document.getElementById('catModalTitle').textContent = 'Edit Category';
+      document.getElementById('catId').value = c.id;
+      document.getElementById('catName').value = c.name;
+      document.getElementById('catEmoji').value = c.emoji || '';
+      document.getElementById('catDesc').value = c.description || '';
+      document.getElementById('catModal').classList.add('open');
+    };
+
+    document.getElementById('saveCat').addEventListener('click', async () => {
+      const id = document.getElementById('catId').value;
+      const name = document.getElementById('catName').value.trim();
+      const emoji = document.getElementById('catEmoji').value.trim() || '📦';
+      const description = document.getElementById('catDesc').value.trim();
+      if (!name) { showToast('Validation', 'Category name is required.', 'warning'); return; }
+      const btn = document.getElementById('saveCat');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>';
+      try {
+        if (id) {
+          await updateDoc(doc(db, 'categories', id), { name, emoji, description, updatedAt: serverTimestamp() });
+          showToast('Updated', `Category "${name}" updated.`, 'success');
+        } else {
+          await addDoc(collection(db, 'categories'), { name, emoji, description, createdAt: serverTimestamp() });
+          showToast('Added', `Category "${name}" added.`, 'success');
+        }
+        document.getElementById('catModal').classList.remove('open');
+        await loadAll();
+      } catch { showToast('Error', 'Failed to save category.', 'error'); }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Category'; }
+    });
+
+    // Delete
+    window.openDeleteCat = (id, name) => {
+      deleteTargetId = id;
+      document.getElementById('deleteCatName').textContent = `"${name}"`;
+      document.getElementById('deleteCatModal').classList.add('open');
+    };
+    document.getElementById('closeDeleteCatModal').addEventListener('click', () => { document.getElementById('deleteCatModal').classList.remove('open'); deleteTargetId = null; });
+    document.getElementById('cancelDeleteCat').addEventListener('click', () => { document.getElementById('deleteCatModal').classList.remove('open'); deleteTargetId = null; });
+    document.getElementById('confirmDeleteCat').addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      try {
+        await deleteDoc(doc(db, 'categories', deleteTargetId));
+        document.getElementById('deleteCatModal').classList.remove('open');
+        showToast('Deleted', 'Category removed.', 'success');
+        await loadAll();
+      } catch { showToast('Error', 'Failed to delete.', 'error'); }
+      deleteTargetId = null;
+    });
+
+    await loadAll();
+  </script>
+</body>
+</html>

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Logs — Ube & Sand Halo-Halo Shop</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍧</text></svg>" />
+
+  <style>
+    /* ---- Tab Buttons ---- */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid var(--gray-200);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: none;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .tab-btn:hover { color: var(--primary); }
+
+    /* ---- Log type colors ---- */
+    .log-row-in  { border-left: 3px solid var(--success); }
+    .log-row-out { border-left: 3px solid var(--danger); }
+    .log-row-adj { border-left: 3px solid var(--info); }
+    .log-row-sale { border-left: 3px solid var(--accent); }
+
+    /* ---- Summary chips ---- */
+    .summary-chips {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--white);
+      border: 1px solid var(--gray-100);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      box-shadow: var(--shadow-sm);
+      flex: 1;
+      min-width: 160px;
+    }
+    .chip-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .chip-val  { font-size: 1.25rem; font-weight: 800; color: var(--gray-900); }
+    .chip-lbl  { font-size: 0.75rem; color: var(--gray-500); font-weight: 500; }
+
+    /* ---- Filter bar ---- */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .filter-bar select,
+    .filter-bar input[type="date"] {
+      padding: 9px 12px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.8125rem;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      outline: none;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .filter-bar select:focus,
+    .filter-bar input:focus {
+      border-color: var(--primary);
+      background: var(--white);
+    }
+
+    /* ---- Timeline (Inventory Log view) ---- */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--gray-100);
+      position: relative;
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .tl-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 15px;
+      margin-top: 2px;
+    }
+    .tl-icon.in  { background: var(--success-light); color: var(--success); }
+    .tl-icon.out { background: var(--danger-light); color: var(--danger); }
+    .tl-icon.adj { background: var(--info-light); color: var(--info); }
+    .tl-icon.sale { background: rgba(201,169,110,0.15); color: #8A6914; }
+
+    .tl-body { flex: 1; min-width: 0; }
+    .tl-title { font-size: 0.9rem; font-weight: 600; color: var(--gray-900); }
+    .tl-sub   { font-size: 0.775rem; color: var(--gray-500); margin-top: 2px; }
+    .tl-meta  { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+    .tl-chip  {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.75rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 20px;
+    }
+    .tl-time { font-size: 0.75rem; color: var(--gray-500); margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+
+    @media (max-width: 600px) {
+      .chip { min-width: 140px; }
+      .tl-time { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div><span>Loading...</span>
+  </div>
+
+  <div class="app-layout">
+    <!-- ======== SIDEBAR ======== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="dashboard.html" class="sidebar-brand">
+          <div class="brand-icon"><i class="fa-solid fa-bowl-food"></i></div>
+          <div class="brand-text">
+            <h2>Ube &amp; Sand</h2>
+            <span>Halo-Halo Shop</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main Menu</div>
+        <a href="dashboard.html"  class="nav-item"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+        <a href="products.html"   class="nav-item"><i class="fa-solid fa-box-open"></i> Products</a>
+        <a href="inventory.html"  class="nav-item"><i class="fa-solid fa-warehouse"></i> Inventory</a>
+        <a href="categories.html" class="nav-item"><i class="fa-solid fa-tags"></i> Categories</a>
+        <a href="sales.html"      class="nav-item"><i class="fa-solid fa-cash-register"></i> Sales</a>
+        <a href="logs.html"       class="nav-item active"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a>
+
+        <div class="nav-section-title" style="margin-top:12px;">Account</div>
+        <a href="profile.html" class="nav-item"><i class="fa-solid fa-user-circle"></i> Profile</a>
+        <a href="#" class="nav-item" id="logoutBtn">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+          <div class="user-info">
+            <div class="user-name" id="sidebarUserName">Admin</div>
+            <div class="user-role" id="sidebarUserEmail">admin@halo-halo.ph</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ======== MAIN ======== -->
+    <div class="main-content">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="topbar-toggle" id="sidebarToggle">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="topbar-title">
+          <h1>Activity Logs</h1>
+          <p>Full audit trail — inventory movements &amp; sales transactions</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-sm btn-secondary" id="exportBtn">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+          </button>
+          <button class="btn btn-sm btn-outline" id="refreshBtn">
+            <i class="fa-solid fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <main class="page-content">
+
+        <!-- Summary Chips -->
+        <div class="summary-chips">
+          <div class="chip">
+            <div class="chip-icon" style="background:var(--success-light);color:var(--success);">
+              <i class="fa-solid fa-arrow-down"></i>
+            </div>
+            <div>
+              <div class="chip-val" id="chipStockIn">—</div>
+              <div class="chip-lbl">Stock-In Entries</div>
+            </div>
+          </div>
+          <div class="chip">
+            <div class="chip-icon" style="background:var(--danger-light);color:var(--danger);">
+              <i class="fa-solid fa-arrow-up"></i>
+            </div>
+            <div>
+              <div class="chip-val" id="chipStockOut">—</div>
+              <div class="chip-lbl">Stock-Out Entries</div>
+            </div>
+          </div>
+          <div class="chip">
+            <div class="chip-icon" style="background:var(--info-light);color:var(--info);">
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+            <div>
+              <div class="chip-val" id="chipAdjustments">—</div>
+              <div class="chip-lbl">Adjustments</div>
+            </div>
+          </div>
+          <div class="chip">
+            <div class="chip-icon" style="background:rgba(201,169,110,0.15);color:#8A6914;">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div>
+              <div class="chip-val" id="chipSales">—</div>
+              <div class="chip-lbl">Sales Transactions</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="inventory">
+            <i class="fa-solid fa-warehouse"></i> Inventory Movements
+          </button>
+          <button class="tab-btn" data-tab="sales">
+            <i class="fa-solid fa-cash-register"></i> Sales Transactions
+          </button>
+          <button class="tab-btn" data-tab="all">
+            <i class="fa-solid fa-list-ul"></i> All Logs (Table)
+          </button>
+        </div>
+
+        <!-- ===== INVENTORY MOVEMENTS TAB ===== -->
+        <div id="tab-inventory" class="tab-content">
+          <div class="filter-bar">
+            <div class="search-bar" style="flex:1;min-width:180px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="invSearch" placeholder="Search product name..." />
+            </div>
+            <select id="invTypeFilter">
+              <option value="">All Types</option>
+              <option value="stock_in">Stock In</option>
+              <option value="stock_out">Stock Out</option>
+              <option value="adjustment">Adjustment</option>
+            </select>
+            <input type="date" id="invDateFilter" title="Filter by date" />
+            <button class="btn btn-sm btn-secondary" id="invClearFilter">
+              <i class="fa-solid fa-xmark"></i> Clear
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fa-solid fa-clock-rotate-left"></i> Inventory Movement Log
+              </h3>
+              <span class="badge badge-purple" id="invLogCount">0 entries</span>
+            </div>
+            <div class="card-body" style="padding:0 16px;">
+              <div class="timeline" id="invTimeline">
+                <div style="text-align:center;padding:40px;color:var(--gray-500);">
+                  <div class="spinner" style="margin:0 auto 12px;"></div>
+                  Loading inventory logs...
+                </div>
+              </div>
+            </div>
+            <div class="card-footer" id="invLoadMore" style="text-align:center;display:none;">
+              <button class="btn btn-secondary btn-sm" id="loadMoreInv">
+                <i class="fa-solid fa-chevron-down"></i> Load More
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SALES TRANSACTIONS TAB ===== -->
+        <div id="tab-sales" class="tab-content" style="display:none;">
+          <div class="filter-bar">
+            <div class="search-bar" style="flex:1;min-width:180px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="salesSearch" placeholder="Search order number or product..." />
+            </div>
+            <input type="date" id="salesDateFilter" title="Filter by date" />
+            <button class="btn btn-sm btn-secondary" id="salesClearFilter">
+              <i class="fa-solid fa-xmark"></i> Clear
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fa-solid fa-receipt"></i> Sales Transaction Log
+              </h3>
+              <span class="badge badge-gold" id="salesLogCount">0 entries</span>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Items Sold</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                    <th>Notes</th>
+                    <th>Date &amp; Time</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="salesLogBody">
+                  <tr>
+                    <td colspan="7" style="text-align:center;padding:40px;">
+                      <div class="spinner" style="margin:0 auto;"></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== ALL LOGS TABLE TAB ===== -->
+        <div id="tab-all" class="tab-content" style="display:none;">
+          <div class="filter-bar">
+            <div class="search-bar" style="flex:1;min-width:180px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="allSearch" placeholder="Search anything..." />
+            </div>
+            <select id="allTypeFilter">
+              <option value="">All Types</option>
+              <option value="stock_in">Stock In</option>
+              <option value="stock_out">Stock Out</option>
+              <option value="adjustment">Adjustment</option>
+              <option value="sale">Sale</option>
+            </select>
+            <input type="date" id="allDateFilter" title="Filter by date" />
+            <button class="btn btn-sm btn-secondary" id="allClearFilter">
+              <i class="fa-solid fa-xmark"></i> Clear
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fa-solid fa-table-list"></i> All Activity Logs
+              </h3>
+              <span class="badge badge-purple" id="allLogCount">0 entries</span>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Product / Order</th>
+                    <th>Qty / Amount</th>
+                    <th>Before → After</th>
+                    <th>Notes</th>
+                    <th>Date &amp; Time</th>
+                  </tr>
+                </thead>
+                <tbody id="allLogsBody">
+                  <tr>
+                    <td colspan="7" style="text-align:center;padding:40px;">
+                      <div class="spinner" style="margin:0 auto;"></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Sale Detail Modal -->
+  <div class="modal-overlay" id="saleDetailModal">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i class="fa-solid fa-receipt"></i> Transaction Details
+        </h3>
+        <button class="modal-close" id="closeSaleDetail">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="saleDetailBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="closeSaleDetailBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ======================================================
+       SCRIPT
+  ====================================================== -->
+  <script type="module">
+    import { requireAuth, logoutUser, initSidebar, showToast, formatCurrency, formatDateTime, formatDate } from "./js/auth-guard.js";
+    import { initFirebase } from "./js/auth-guard.js";
+    import { stockBadge, logTypeBadge, escapeHtml, debounce } from "./js/app.js";
+    import {
+      collection, getDocs, query,
+      orderBy, limit, startAfter, where, Timestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const { db } = initFirebase();
+    await requireAuth();
+    initSidebar();
+
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await logoutUser();
+    });
+
+    // -------- Data --------
+    let invLogs  = [];   // inventory_logs
+    let salesLogs = [];  // sales
+    let lastInvDoc = null;
+    const PAGE_SIZE = 30;
+
+    // -------- Tab switching --------
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        btn.classList.add('active');
+        const tabId = 'tab-' + btn.dataset.tab;
+        document.getElementById(tabId).style.display = 'block';
+
+        if (btn.dataset.tab === 'sales' && salesLogs.length === 0) loadSalesLogs();
+        if (btn.dataset.tab === 'all') renderAllLogs();
+      });
+    });
+
+    // -------- Load inventory logs --------
+    async function loadInvLogs(append = false) {
+      try {
+        let q = query(
+          collection(db, 'inventory_logs'),
+          orderBy('createdAt', 'desc'),
+          limit(PAGE_SIZE)
+        );
+        if (append && lastInvDoc) {
+          q = query(
+            collection(db, 'inventory_logs'),
+            orderBy('createdAt', 'desc'),
+            startAfter(lastInvDoc),
+            limit(PAGE_SIZE)
+          );
+        }
+        const snap = await getDocs(q);
+        const newDocs = snap.docs.map(d => ({ id: d.id, _source: 'inventory', ...d.data() }));
+        if (append) {
+          invLogs = [...invLogs, ...newDocs];
+        } else {
+          invLogs = newDocs;
+        }
+        lastInvDoc = snap.docs[snap.docs.length - 1] || lastInvDoc;
+        document.getElementById('invLoadMore').style.display = snap.docs.length === PAGE_SIZE ? 'block' : 'none';
+        updateSummaryChips();
+        renderInvTimeline(invLogs);
+      } catch (err) {
+        console.error('Inv logs error:', err);
+        showToast('Error', 'Failed to load inventory logs.', 'error');
+      }
+    }
+
+    document.getElementById('loadMoreInv').addEventListener('click', () => loadInvLogs(true));
+
+    // -------- Load sales logs --------
+    async function loadSalesLogs() {
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'sales'),
+          orderBy('createdAt', 'desc'),
+          limit(100)
+        ));
+        salesLogs = snap.docs.map(d => ({ id: d.id, _source: 'sales', ...d.data() }));
+        updateSummaryChips();
+        renderSalesTable(salesLogs);
+      } catch (err) {
+        console.error('Sales logs error:', err);
+        showToast('Error', 'Failed to load sales logs.', 'error');
+      }
+    }
+
+    // -------- Summary chips --------
+    function updateSummaryChips() {
+      const inCount  = invLogs.filter(l => l.type === 'stock_in').length;
+      const outCount = invLogs.filter(l => l.type === 'stock_out').length;
+      const adjCount = invLogs.filter(l => l.type === 'adjustment').length;
+      document.getElementById('chipStockIn').textContent    = inCount;
+      document.getElementById('chipStockOut').textContent   = outCount;
+      document.getElementById('chipAdjustments').textContent = adjCount;
+      document.getElementById('chipSales').textContent      = salesLogs.length || '—';
+    }
+
+    // -------- Render: Inventory Timeline --------
+    function renderInvTimeline(logs) {
+      document.getElementById('invLogCount').textContent = `${logs.length} entries`;
+      const container = document.getElementById('invTimeline');
+
+      if (!logs.length) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding:48px 20px;">
+            <div class="empty-icon">📋</div>
+            <h3>No inventory movements yet</h3>
+            <p>Stock In / Out actions will appear here.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = logs.map(log => {
+        const typeMap = {
+          stock_in:   { cls: 'in',   icon: 'fa-arrow-down',         label: 'Stock In',   chipCls: 'badge-success' },
+          stock_out:  { cls: 'out',  icon: 'fa-arrow-up',           label: 'Stock Out',  chipCls: 'badge-danger'  },
+          adjustment: { cls: 'adj',  icon: 'fa-sliders',            label: 'Adjustment', chipCls: 'badge-info'    },
+        };
+        const t = typeMap[log.type] || { cls: 'adj', icon: 'fa-circle', label: log.type, chipCls: 'badge-purple' };
+        const qtySign  = log.type === 'stock_in' ? '+' : (log.type === 'stock_out' ? '-' : '±');
+        const qtyColor = log.type === 'stock_in' ? 'var(--success)' : (log.type === 'stock_out' ? 'var(--danger)' : 'var(--info)');
+
+        return `
+          <div class="timeline-item">
+            <div class="tl-icon ${t.cls}">
+              <i class="fa-solid ${t.icon}"></i>
+            </div>
+            <div class="tl-body">
+              <div class="tl-title">${escapeHtml(log.productName) || '—'}</div>
+              <div class="tl-sub">${log.notes || 'No notes'}</div>
+              <div class="tl-meta">
+                <span class="tl-chip badge ${t.chipCls}">${t.label}</span>
+                <span class="tl-chip" style="background:rgba(0,0,0,0.04);color:${qtyColor};">
+                  <i class="fa-solid fa-hashtag" style="font-size:10px;"></i>
+                  ${qtySign}${log.quantity ?? 0}
+                </span>
+                ${(log.previousStock !== undefined) ? `
+                  <span class="tl-chip" style="background:var(--gray-100);color:var(--gray-700);font-size:0.7rem;">
+                    ${log.previousStock} → ${log.newStock}
+                  </span>` : ''}
+              </div>
+            </div>
+            <div class="tl-time">${formatDateTime(log.createdAt)}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // -------- Render: Sales Table --------
+    function renderSalesTable(sales) {
+      document.getElementById('salesLogCount').textContent = `${sales.length} entries`;
+      const tbody = document.getElementById('salesLogBody');
+
+      if (!sales.length) {
+        tbody.innerHTML = `
+          <tr><td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon">🛒</div>
+              <h3>No sales transactions yet</h3>
+            </div>
+          </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = sales.map(s => `
+        <tr>
+          <td class="td-name">${escapeHtml(s.orderNumber) || s.id.slice(-8).toUpperCase()}</td>
+          <td style="font-size:0.8rem;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${(s.items || []).map(i => `${escapeHtml(i.productName)} ×${i.quantity}`).join(', ') || '—'}
+          </td>
+          <td class="fw-600">${s.totalQuantity ?? 0}</td>
+          <td class="fw-600 text-primary">${formatCurrency(s.totalAmount)}</td>
+          <td style="font-size:0.8rem;color:var(--gray-500);">${escapeHtml(s.notes) || '—'}</td>
+          <td style="font-size:0.8rem;color:var(--gray-500);">${formatDateTime(s.createdAt)}</td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="viewSaleDetail('${s.id}')" title="View Details">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // -------- Render: All Logs Table --------
+    function renderAllLogs(filtered = null) {
+      const combined = [
+        ...invLogs.map(l => ({ ...l, _source: 'inventory' })),
+        ...salesLogs.map(l => ({ ...l, _source: 'sales', type: 'sale' }))
+      ].sort((a, b) => {
+        const ta = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+        const tb = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+        return tb - ta;
+      });
+
+      const data = filtered || combined;
+      document.getElementById('allLogCount').textContent = `${data.length} entries`;
+      const tbody = document.getElementById('allLogsBody');
+
+      if (!data.length) {
+        tbody.innerHTML = `
+          <tr><td colspan="7">
+            <div class="empty-state"><div class="empty-icon">📄</div><h3>No logs found</h3></div>
+          </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(log => {
+        if (log._source === 'sales') {
+          const items = (log.items || []).map(i => `${escapeHtml(i.productName)} ×${i.quantity}`).join(', ');
+          return `<tr>
+            <td>${logTypeBadge('sale')}</td>
+            <td style="font-size:0.8rem;">Sale Transaction</td>
+            <td class="td-name">${escapeHtml(log.orderNumber) || log.id.slice(-8).toUpperCase()}</td>
+            <td class="fw-600 text-primary">${formatCurrency(log.totalAmount)}</td>
+            <td style="color:var(--gray-500);">— qty: ${log.totalQuantity ?? 0}</td>
+            <td style="font-size:0.8rem;color:var(--gray-500);">${escapeHtml(log.notes) || '—'}</td>
+            <td style="font-size:0.8rem;color:var(--gray-500);">${formatDateTime(log.createdAt)}</td>
+          </tr>`;
+        } else {
+          const sign = log.type === 'stock_in' ? '+' : (log.type === 'stock_out' ? '-' : '±');
+          return `<tr>
+            <td>${logTypeBadge(log.type)}</td>
+            <td style="font-size:0.8rem;">Stock Movement</td>
+            <td class="td-name">${escapeHtml(log.productName) || '—'}</td>
+            <td class="fw-600" style="color:${log.type==='stock_in'?'var(--success)':log.type==='stock_out'?'var(--danger)':'var(--info)'};">
+              ${sign}${log.quantity ?? 0}
+            </td>
+            <td style="color:var(--gray-500);">${log.previousStock ?? '—'} → ${log.newStock ?? '—'}</td>
+            <td style="font-size:0.8rem;color:var(--gray-500);">${escapeHtml(log.notes) || '—'}</td>
+            <td style="font-size:0.8rem;color:var(--gray-500);">${formatDateTime(log.createdAt)}</td>
+          </tr>`;
+        }
+      }).join('');
+    }
+
+    // -------- Sale Detail Modal --------
+    window.viewSaleDetail = (id) => {
+      const s = salesLogs.find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('saleDetailBody').innerHTML = `
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:var(--gray-500);font-size:0.875rem;">Order Number</span>
+            <span class="fw-700">${escapeHtml(s.orderNumber) || s.id.slice(-8).toUpperCase()}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:var(--gray-500);font-size:0.875rem;">Date &amp; Time</span>
+            <span class="fw-600">${formatDateTime(s.createdAt)}</span>
+          </div>
+          ${s.notes ? `
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:var(--gray-500);font-size:0.875rem;">Notes</span>
+            <span>${escapeHtml(s.notes)}</span>
+          </div>` : ''}
+        </div>
+        <div class="divider"></div>
+        <table style="width:100%;margin-bottom:14px;">
+          <thead>
+            <tr>
+              <th style="padding:8px;text-align:left;font-size:0.75rem;color:var(--gray-500);">Item</th>
+              <th style="padding:8px;text-align:center;font-size:0.75rem;color:var(--gray-500);">Qty</th>
+              <th style="padding:8px;text-align:right;font-size:0.75rem;color:var(--gray-500);">Price</th>
+              <th style="padding:8px;text-align:right;font-size:0.75rem;color:var(--gray-500);">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(s.items || []).map(i => `
+              <tr>
+                <td style="padding:8px;font-size:0.875rem;">${escapeHtml(i.productName)}</td>
+                <td style="padding:8px;text-align:center;font-size:0.875rem;">${i.quantity}</td>
+                <td style="padding:8px;text-align:right;font-size:0.875rem;">${formatCurrency(i.price)}</td>
+                <td style="padding:8px;text-align:right;font-size:0.875rem;font-weight:600;">${formatCurrency(i.subtotal)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;">
+          <span style="font-weight:700;font-size:1rem;">TOTAL</span>
+          <span style="font-size:1.375rem;font-weight:800;color:var(--primary);">${formatCurrency(s.totalAmount)}</span>
+        </div>
+      `;
+      document.getElementById('saleDetailModal').classList.add('open');
+    };
+    document.getElementById('closeSaleDetail').addEventListener('click', () =>
+      document.getElementById('saleDetailModal').classList.remove('open'));
+    document.getElementById('closeSaleDetailBtn').addEventListener('click', () =>
+      document.getElementById('saleDetailModal').classList.remove('open'));
+
+    // -------- Filters: Inventory --------
+    function applyInvFilter() {
+      const search = document.getElementById('invSearch').value.toLowerCase();
+      const type   = document.getElementById('invTypeFilter').value;
+      const date   = document.getElementById('invDateFilter').value;
+      let filtered = invLogs.filter(l => {
+        const matchSearch = !search || (l.productName || '').toLowerCase().includes(search) || (l.notes || '').toLowerCase().includes(search);
+        const matchType   = !type || l.type === type;
+        const matchDate   = !date || (() => {
+          const d = l.createdAt?.toDate?.() || new Date(l.createdAt || 0);
+          return d.toISOString().slice(0, 10) === date;
+        })();
+        return matchSearch && matchType && matchDate;
+      });
+      renderInvTimeline(filtered);
+    }
+    document.getElementById('invSearch').addEventListener('input', debounce(applyInvFilter, 250));
+    document.getElementById('invTypeFilter').addEventListener('change', applyInvFilter);
+    document.getElementById('invDateFilter').addEventListener('change', applyInvFilter);
+    document.getElementById('invClearFilter').addEventListener('click', () => {
+      document.getElementById('invSearch').value = '';
+      document.getElementById('invTypeFilter').value = '';
+      document.getElementById('invDateFilter').value = '';
+      renderInvTimeline(invLogs);
+    });
+
+    // -------- Filters: Sales --------
+    function applySalesFilter() {
+      const search = document.getElementById('salesSearch').value.toLowerCase();
+      const date   = document.getElementById('salesDateFilter').value;
+      let filtered = salesLogs.filter(s => {
+        const matchSearch = !search ||
+          (s.orderNumber || '').toLowerCase().includes(search) ||
+          (s.items || []).some(i => (i.productName || '').toLowerCase().includes(search));
+        const matchDate = !date || (() => {
+          const d = s.createdAt?.toDate?.() || new Date(s.createdAt || 0);
+          return d.toISOString().slice(0, 10) === date;
+        })();
+        return matchSearch && matchDate;
+      });
+      renderSalesTable(filtered);
+    }
+    document.getElementById('salesSearch').addEventListener('input', debounce(applySalesFilter, 250));
+    document.getElementById('salesDateFilter').addEventListener('change', applySalesFilter);
+    document.getElementById('salesClearFilter').addEventListener('click', () => {
+      document.getElementById('salesSearch').value = '';
+      document.getElementById('salesDateFilter').value = '';
+      renderSalesTable(salesLogs);
+    });
+
+    // -------- Filters: All Logs --------
+    function applyAllFilter() {
+      const combined = [
+        ...invLogs.map(l => ({ ...l, _source: 'inventory' })),
+        ...salesLogs.map(l => ({ ...l, _source: 'sales', type: 'sale' }))
+      ].sort((a, b) => {
+        const ta = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+        const tb = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+        return tb - ta;
+      });
+      const search = document.getElementById('allSearch').value.toLowerCase();
+      const type   = document.getElementById('allTypeFilter').value;
+      const date   = document.getElementById('allDateFilter').value;
+      let filtered = combined.filter(l => {
+        const text = [(l.productName || ''), (l.orderNumber || ''), (l.notes || ''), ...(l.items || []).map(i => i.productName || '')].join(' ').toLowerCase();
+        const matchSearch = !search || text.includes(search);
+        const matchType   = !type || l.type === type;
+        const matchDate   = !date || (() => {
+          const d = l.createdAt?.toDate?.() || new Date(l.createdAt || 0);
+          return d.toISOString().slice(0, 10) === date;
+        })();
+        return matchSearch && matchType && matchDate;
+      });
+      renderAllLogs(filtered);
+    }
+    document.getElementById('allSearch').addEventListener('input', debounce(applyAllFilter, 250));
+    document.getElementById('allTypeFilter').addEventListener('change', applyAllFilter);
+    document.getElementById('allDateFilter').addEventListener('change', applyAllFilter);
+    document.getElementById('allClearFilter').addEventListener('click', () => {
+      document.getElementById('allSearch').value = '';
+      document.getElementById('allTypeFilter').value = '';
+      document.getElementById('allDateFilter').value = '';
+      renderAllLogs();
+    });
+
+    // -------- Refresh --------
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+      showToast('Refreshed', 'Logs reloaded.', 'info');
+      lastInvDoc = null;
+      invLogs = [];
+      salesLogs = [];
+      await loadInvLogs();
+      await loadSalesLogs();
+    });
+
+    // -------- Export CSV --------
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const rows = [['Type', 'Product / Order', 'Quantity / Amount', 'Before Stock', 'After Stock', 'Notes', 'Date']];
+      invLogs.forEach(l => {
+        rows.push([l.type, l.productName || '', l.quantity || '', l.previousStock ?? '', l.newStock ?? '', l.notes || '', formatDateTime(l.createdAt)]);
+      });
+      salesLogs.forEach(s => {
+        rows.push(['sale', s.orderNumber || s.id, formatCurrency(s.totalAmount), '', '', s.notes || '', formatDateTime(s.createdAt)]);
+      });
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url;
+      a.download = `halo-halo-logs-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Exported', 'CSV file downloaded.', 'success');
+    });
+
+    // -------- Initial Load --------
+    await Promise.all([loadInvLogs(), loadSalesLogs()]);
+  </script>
+</body>
+</html>
