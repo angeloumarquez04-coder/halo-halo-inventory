@@ -1,0 +1,54 @@
+// ============================================================
+//  APP.JS — Shared utilities
+//  Ube & Sand Halo-Halo Shop
+// ============================================================
+
+export function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+export function truncate(str, max = 40) {
+  if (!str) return '—';
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+export function debounce(fn, delay = 300) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+export function stockBadge(stock, threshold = 10) {
+  return Number(stock) <= Number(threshold)
+    ? `<span class="badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Low</span>`
+    : `<span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> In Stock</span>`;
+}
+
+export function logTypeBadge(type) {
+  const map = {
+    stock_in:   `<span class="badge badge-success"><i class="fa-solid fa-arrow-down"></i> Stock In</span>`,
+    stock_out:  `<span class="badge badge-danger"><i class="fa-solid fa-arrow-up"></i> Stock Out</span>`,
+    adjustment: `<span class="badge badge-info"><i class="fa-solid fa-sliders"></i> Adjustment</span>`,
+    sale:       `<span class="badge badge-gold"><i class="fa-solid fa-cash-register"></i> Sale</span>`,
+  };
+  return map[type] || `<span class="badge badge-purple">${type}</span>`;
+}
+
+export function getTodayRange() {
+  const start = new Date(); start.setHours(0,0,0,0);
+  const end   = new Date(); end.setHours(23,59,59,999);
+  return { start, end };
+}
+
+export function setButtonLoading(btn, loading = true) {
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span> Saving...`;
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = btn._orig || 'Save';
+  }
+}
